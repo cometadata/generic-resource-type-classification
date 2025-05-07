@@ -1,0 +1,1 @@
+# generic-resource-type-classification
