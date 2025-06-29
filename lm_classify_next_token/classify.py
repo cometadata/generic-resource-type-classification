@@ -67,54 +67,6 @@ def parse_args():
     
     return parser.parse_args()
 
-def get_logprobs(output):
-    completion = output.outputs[0]
-    logprobs = completion.logprobs
-    n_tokens = len(logprobs)
-
-    # get the probability of the chosen one
-    
-
-    # get all the logprobs for tokens that combine to be digits or </br>
-    # we will use this to compute the logprobs of the next token
-    logprobs = [
-        [x for x in lp.values() if x.decoded_token.isdigit() or x.decoded_token == STOP_TOKEN]
-        for lp in logprobs
-    ]
-
-    # compute the cartesian product of this
-    output = {}
-    logprobs = list(itertools.product(*logprobs))
-    for combo in logprobs:
-        for i, x in enumerate(combo):
-            if x.decoded_token == STOP_TOKEN:
-                break
-        # truncate to the stop token (include stop token in logprob but not text)
-        combo = combo[:i+1]
-        text = "".join(x.decoded_token for x in combo[:-1]) # don't include stop token in text
-        if text in output:
-            continue
-
-        lp = sum(x.logprob for x in combo) # include stop token in logprob
-        output[text] = lp
-    
-    output = {k: v for k,v in output.items() if 1 <= int(k) <= N_CHOICES}
-    output = {k: math.exp(v) for k,v in output.items()}
-    output = {k: v / sum(output.values()) for k,v in output.items()}
-
-    # add together probabilities for numbers that could have different representations (e.g. 1 and 01)
-    normalized_output = defaultdict(float)
-    for k, v in output.items():
-        normalized_output[int(k)] += v
-    
-    # add in numbers that don't appear
-    for k in range(1, N_CHOICES + 1):
-        if k not in normalized_output:
-            normalized_output[k] = 0
-    
-    # convert to categories
-    return {CATEGORIES[k]: v for k,v in normalized_output.items()}
-
 def process_batch(args, llm, tokenizer, article_batch, batch):
     # get the stringified description passed to the model
     article_desc = [x[1]['content'] for x in batch]
@@ -139,8 +91,27 @@ def process_batch(args, llm, tokenizer, article_batch, batch):
     with open(args.output_file, "a") as f:
         for metadata, desc, output in zip(article_batch, article_desc, outputs):
             metadata['prompt'] = desc
-            breakpoint()
-            # metadata['prediction'] = get_logprobs(output)
+
+            # get the completion
+            completion = output.outputs[0].text
+            cumulative_logp = output.outputs[0].cumulative_logprob
+            cumulative_prob = math.exp(cumulative_logp)
+            
+            # try and convert the completion to an integer
+            category_pred = None
+            try:
+                completion_int = ''.join([x for x in completion if x.isdigit()])
+                category_pred = int(completion_int)
+                category_pred = CATEGORIES[category_pred]
+            except:
+                pass
+            
+            # write the output to the output file
+            metadata['prediction'] = {
+                'category': category_pred,
+                'completion': completion,
+                'probability': cumulative_prob
+            }
             
             f.write(json.dumps(metadata) + "\n")
 
