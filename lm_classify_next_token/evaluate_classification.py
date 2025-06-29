@@ -169,7 +169,7 @@ def plot_category_accuracy(df: pd.DataFrame, out_file: pathlib.Path) -> None:
     plt.ylabel("Category")
     plt.title("Accuracy per category")
     plt.tight_layout()
-    plt.savefig(out_file)
+    plt.savefig(out_file, dpi=300)
     plt.close()
 
 
@@ -190,7 +190,7 @@ def plot_confusion_matrix(df: pd.DataFrame, out_file: pathlib.Path) -> None:
     plt.ylabel("True label")
     plt.title("Confusion matrix (row-normalized)")
     plt.tight_layout()
-    plt.savefig(out_file)
+    plt.savefig(out_file, dpi=300)
     plt.close()
 
 
@@ -215,7 +215,7 @@ def plot_probability_hist(df: pd.DataFrame, out_file: pathlib.Path) -> None:
     plt.title("Probability distribution – correct vs incorrect")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(out_file)
+    plt.savefig(out_file, dpi=300)
     plt.close()
 
 
