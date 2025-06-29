@@ -5,11 +5,9 @@ import json
 import itertools
 import math
 from collections import defaultdict
+import argparse
 
-TOTAL_LINES = 2_616_252
-INPUT_FILE = "metadata-index.jsonl"
-OUTPUT_FILE = "classifications.jsonl"
-
+TOTAL_LINES = 72_019_562
 N_CHOICES = 32
 SYSTEM_PROMPT = """You are an expert at reading the metadata of academic articles and classifying them. The user will provide you some details about an academic article and you need to classify it into one of the following categories:
 
@@ -59,14 +57,25 @@ Respond only with the number of the category. Do not include any additional info
 
 CATEGORIES = {1: "Audiovisual", 2: "Award", 3: "Book", 4: "BookChapter", 5: "Collection", 6: "ComputationalNotebook", 7: "ConferencePaper", 8: "ConferenceProceeding", 9: "DataPaper", 10: "Dataset", 11: "Dissertation", 12: "Event", 13: "Image", 14: "Instrument", 15: "InteractiveResource", 16: "Journal", 17: "JournalArticle", 18: "Model", 19: "OutputManagementPlan", 20: "PeerReview", 21: "PhysicalObject", 22: "Preprint", 23: "Project", 24: "Report", 25: "Service", 26: "Software", 27: "Sound", 28: "Standard", 29: "StudyRegistration", 30: "Text", 31: "Workflow", 32: "Other"}
 
-STOP_TOKEN = '<|im_end|>'
+def parse_args():
+    parser = argparse.ArgumentParser(description="Classify academic articles into categories.")
+
+    parser.add_argument("--input_file", type=str, required=True, help="Path to the input file.")
+    parser.add_argument("--output_file", type=str, required=True, help="Path to the output file.")
+    parser.add_argument("--model", type=str, default="Qwen/Qwen3-4B", help="Model to use for classification.")
+    parser.add_argument("--batch_size", type=int, default=1_000, help="Queue up this many articles before processing.")
+    
+    return parser.parse_args()
 
 def get_logprobs(output):
     completion = output.outputs[0]
     logprobs = completion.logprobs
     n_tokens = len(logprobs)
 
-    # get all the logprobs for tokens that combine to be digits or  </br>
+    # get the probability of the chosen one
+    
+
+    # get all the logprobs for tokens that combine to be digits or </br>
     # we will use this to compute the logprobs of the next token
     logprobs = [
         [x for x in lp.values() if x.decoded_token.isdigit() or x.decoded_token == STOP_TOKEN]
@@ -106,52 +115,63 @@ def get_logprobs(output):
     # convert to categories
     return {CATEGORIES[k]: v for k,v in normalized_output.items()}
 
-def process_batch(llm, tokenizer, article_batch, batch):
+def process_batch(args, llm, tokenizer, article_batch, batch):
+    # get the stringified description passed to the model
     article_desc = [x[1]['content'] for x in batch]
+
+    # apply the chat template
     prompts = [
         tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False)
         for messages in batch
     ]
 
+    # sample three tokens at zero temperature
     sampling_params = SamplingParams(
         temperature=0,
         top_p=1,
         top_k=-1,
         max_tokens=3,
-        logprobs=20
+        logprobs=1
     )
     outputs = llm.generate(prompts, sampling_params)
 
-    with open(OUTPUT_FILE, "a") as f:
+    # write the output to the output file
+    with open(args.output_file, "a") as f:
         for metadata, desc, output in zip(article_batch, article_desc, outputs):
             metadata['prompt'] = desc
-            metadata['prediction'] = get_logprobs(output)
+            breakpoint()
+            # metadata['prediction'] = get_logprobs(output)
             
             f.write(json.dumps(metadata) + "\n")
 
 def main():
+    args = parse_args()
+
+    # load the model
     llm = LLM(
-        "Qwen/Qwen3-4B",
+        args.model,
         rope_scaling = {"rope_type":"yarn","factor":2.0,"original_max_position_embeddings":32768},
         max_model_len=32768*2
     )
-    tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-4B")
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
 
-    max_batch = 16_000
-
-    with open(INPUT_FILE, "r") as f:
+    # process the articles
+    with open(args.input_file, "r") as f:
         article_batch = []
         batch = []
 
         for line in tqdm(f, total=TOTAL_LINES, desc="Assembling prompts"):
+            # only keep rows with a resourceTypeGeneral so we can use it as the label
             metadata = json.loads(line)
-            
-            del metadata['attributes.types.resourceTypeGeneral']
+            rtg = metadata.get('attributes.types.resourceTypeGeneral')
+            if not rtg:
+                continue
 
             # create the prompt
             article_desc = '\n'.join(
                 f'{k}: {v}'
                 for k, v in metadata.items()
+                if k != 'attributes.types.resourceTypeGeneral'
             )
             prompt = [
                 {'role': 'system', 'content': SYSTEM_PROMPT},
@@ -160,11 +180,14 @@ def main():
             article_batch.append(metadata)
             batch.append(prompt)
 
-            if len(batch) >= max_batch:
-                process_batch(llm, tokenizer, article_batch, batch)
+            if len(batch) >= args.batch_size:
+                process_batch(args, llm, tokenizer, article_batch, batch)
                 batch = []
                 article_batch = []
             
+        if batch:
+            process_batch(args, llm, tokenizer, article_batch, batch)
+
 if __name__ == "__main__":
     main()
     
