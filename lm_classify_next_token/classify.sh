@@ -9,11 +9,10 @@
 #SBATCH --time=12:00:00
 
 module load conda
+. "$(conda info --base)/etc/profile.d/conda.sh"
 cd /scratch/m000152/comet/generic-resource-type/lm_classify_next_token
 
-conda run -n comet \
-    python classify.py \
+python classify.py \
     --input_file /scratch/m000152/comet/data/datacite_2024_metadata.jsonl \
     --output_file /scratch/m000152/comet/generic-resource-type/lm_classify_next_token/datacite_2024_classified_qwen_qwen3_4b.jsonl \
     --batch_size 1000
-    
