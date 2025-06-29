@@ -14,7 +14,7 @@ conda activate comet
 cd /scratch/m000152/comet/generic-resource-type/lm_classify_next_token
 
 python classify.py \
-    --input-file /scratch/m000152/comet/data/datacite_2024_metadata.jsonl \
-    --output-file /scratch/m000152/comet/generic-resource-type/lm_classify_next_token/datacite_2024_classified_qwen_qwen3_4b.jsonl \
+    --input_file /scratch/m000152/comet/data/datacite_2024_metadata.jsonl \
+    --output_file /scratch/m000152/comet/generic-resource-type/lm_classify_next_token/datacite_2024_classified_qwen_qwen3_4b.jsonl \
     --batch_size 1000
     
