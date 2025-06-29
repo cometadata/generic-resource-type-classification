@@ -51,9 +51,11 @@ Pick only one of the above categories, whichever one fits best. Pay very careful
 * "event poster" and "event recording" should not be mapped to "Event"
 * "journal artikel" etc. should not be mapped to "Journal" (should be "JournalArticle")
 * "predigt" means "sermon" in German, so should not be mapped to "Preprint"
-* "Program" can mean computer program ("Software") or a conference/symposium program ("Event")
+* "Program" can mean computer program ("Software") or a conference/symposium program ("Event")'
+* Here is an example of a physical object: attributes.creators[0].name: GLIS Of The ITPGRFA; attributes.titles[0].title: Oryza sativa L. Os00129; attributes.publisher: {\"name\":\"CREA-Research Center for Cereals and Industrial Crops\"}; attributes.publicationYear: 2024; attributes.contributors[0].name: CREA-Research Center For Cereals And Industrial Crops; attributes.types.resourceType: PGRFA Material
 
-Respond only with the number of the category. Do not include any additional information. This is extremely important. Do not include any additional text and end your message immediately after the number."""
+
+Respond only with the number of the category. Do not include any additional information. This is extremely important. Do not include any additional text, punctuation, or whitespace and end your message immediately after the number."""
 
 CATEGORIES = {1: "Audiovisual", 2: "Award", 3: "Book", 4: "BookChapter", 5: "Collection", 6: "ComputationalNotebook", 7: "ConferencePaper", 8: "ConferenceProceeding", 9: "DataPaper", 10: "Dataset", 11: "Dissertation", 12: "Event", 13: "Image", 14: "Instrument", 15: "InteractiveResource", 16: "Journal", 17: "JournalArticle", 18: "Model", 19: "OutputManagementPlan", 20: "PeerReview", 21: "PhysicalObject", 22: "Preprint", 23: "Project", 24: "Report", 25: "Service", 26: "Software", 27: "Sound", 28: "Standard", 29: "StudyRegistration", 30: "Text", 31: "Workflow", 32: "Other"}
 
@@ -62,8 +64,8 @@ def parse_args():
 
     parser.add_argument("--input_file", type=str, required=True, help="Path to the input file.")
     parser.add_argument("--output_file", type=str, required=True, help="Path to the output file.")
-    parser.add_argument("--model", type=str, default="Qwen/Qwen3-4B", help="Model to use for classification.")
-    parser.add_argument("--batch_size", type=int, default=1_000, help="Queue up this many articles before processing.")
+    parser.add_argument("--model", type=str, default="Qwen/Qwen3-8B", help="Model to use for classification.")
+    parser.add_argument("--batch_size", type=int, default=100_000, help="Queue up this many articles before processing.")
     
     return parser.parse_args()
 
