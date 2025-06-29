@@ -65,7 +65,7 @@ def parse_args():
     parser.add_argument("--input_file", type=str, required=True, help="Path to the input file.")
     parser.add_argument("--output_file", type=str, required=True, help="Path to the output file.")
     parser.add_argument("--model", type=str, default="Qwen/Qwen3-8B", help="Model to use for classification.")
-    parser.add_argument("--batch_size", type=int, default=100_000, help="Queue up this many articles before processing.")
+    parser.add_argument("--batch_size", type=int, default=1_000, help="Queue up this many articles before processing.")
     
     return parser.parse_args()
 
