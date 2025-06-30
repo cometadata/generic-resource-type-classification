@@ -36,6 +36,7 @@ import pandas as pd
 import seaborn as sns  # type: ignore
 from matplotlib import pyplot as plt  # type: ignore
 from sklearn.metrics import classification_report, confusion_matrix  # type: ignore
+from tqdm import tqdm
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -126,7 +127,7 @@ def load_results(path: pathlib.Path) -> pd.DataFrame:
     """Load *path* and return a ``pandas.DataFrame`` with selected columns."""
     records: List[dict] = []
     with path.open() as fp:
-        for line in fp:
+        for line in tqdm(fp, total=7645706):
             if not line.strip():
                 continue
             data = json.loads(line)
